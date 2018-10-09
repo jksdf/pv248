@@ -126,13 +126,24 @@ def _parse_bool(s):
 def _parse_people(raw):
   data = [i.strip() for i in raw.split(';') if i.strip()]
   res = []
-  re_year = re.compile(r'\(([0-9]{4})?--([0-9]{4})?\)')
+  re_year = re.compile(r'\(([0-9]{4})?--?([0-9]{4})?\)')
+  re_born = re.compile(r'\(\*([0-9]{4})\)')
+  re_died = re.compile(r'\(\+([0-9]{4})\)')
   for auth in data:
-    year = (None, None)
+    year = [None, None]
     match = re_year.search(auth)
     if match:
       year = [int(i) if i else i for i in (match.group(1), match.group(2))]
-    auth = re_year.sub('', auth).strip()
+    match = re_born.search(auth)
+    if match:
+      year[0] = int(match.group(1))
+    match = re_died.search(auth)
+    if match:
+      year[1] = int(match.group(1))
+    auth = re_year.sub('', auth)
+    auth = re_born.sub('', auth)
+    auth = re_died.sub('', auth)
+    auth = auth.strip()
     res.append(Person(auth, year[0], year[1]))
   return res
 
