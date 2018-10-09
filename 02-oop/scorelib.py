@@ -120,7 +120,7 @@ def _parse_bool(s):
   elif s == 'no':
     return False
   else:
-    return None
+    return False
 
 
 def _parse_people(raw):
