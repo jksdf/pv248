@@ -79,7 +79,7 @@ class Voice:
     self.range = range
 
   def __str__(self):
-    return ', '.join([i for i in [self.name, self.range] if i])
+    return ', '.join([i for i in [self.range, self.name] if i])
 
 
 class Person:
@@ -163,7 +163,7 @@ def _parse_voice(raw):
   else:
     range = None
     name = raw.strip()
-  return Voice(range, name)
+  return Voice(name, range)
 
 
 def _merge_voice(old, new):
