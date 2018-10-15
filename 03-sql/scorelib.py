@@ -29,7 +29,6 @@ Title: {}
 Genre: {}
 Key: {}
 Composition Year: {}
-Publication Year: {}
 Edition: {}
 Editor: {}
 {}Partiture: {}
@@ -40,7 +39,6 @@ Incipit: {}
            _str(self.composition().genre),
            _str(self.composition().key),
            _str(self.composition().year),
-           _str(self.edition.year),
            _str(self.edition.name),
            '; '.join(map(str, self.edition.authors)),
            voices,
@@ -58,14 +56,16 @@ Incipit: {}
 
 
 class Edition:
-  def __init__(self, composition, authors, name, year):
+  def __init__(self, composition, authors, name):
     self.composition = composition
     self.authors = authors if authors else []
     self.name = name if name else ''
-    self.year = year
+
+  def pub_key(self):
+    return self.__key()
 
   def __key(self):
-    return (self.composition, tuple(self.authors), self.name, self.year)
+    return (self.composition, frozenset(self.authors), self.name)
 
   def __eq__(self, other):
     return type(other) == type(self) and other.__key() == self.__key()
@@ -84,8 +84,11 @@ class Composition:
     self.voices = voices
     self.authors = authors
 
+  def pub_key(self):
+    return self.__key()
+
   def __key(self):
-    return (self.name, self.incipit, self.key, self.genre, self.year, tuple(self.voices), tuple(self.authors))
+    return (self.name, self.incipit, self.key, self.genre, self.year, frozenset(self.voices), frozenset(self.authors))
 
   def __eq__(self, other):
     return type(other) == type(self) and other.__key() == self.__key()
@@ -191,13 +194,12 @@ def _parse_people(raw):
 
 
 def _parse_voice(raw):
-  if raw is None:
-    return Voice(None, None)
-  raw = re.sub(r'^ *[0-9]*:', '', raw)
+  numero = int(re.search(r'^ *([0-9]*):', raw).group(1)) - 1
+  raw = re.sub(r'^ *([0-9]*):', '', raw)
   delimiter = ';' if ';' in raw else ','
   data = [i.strip() for i in raw.split(delimiter, 1) if i.strip()]
   if len(data) == 0:
-    return Voice(None, None)
+    return (numero, Voice(None, None))
   if '--' in data[0]:
     range = data[0]
     name = data[1] if len(data) > 1 else None
@@ -207,21 +209,23 @@ def _parse_voice(raw):
   else:
     range = None
     name = raw.strip()
-  return Voice(name, range)
+  return (numero, Voice(name, range))
 
 
 def _merge_voice(old, new):
-  old = list(old) if old else list([])
-  old.append(new)
+  old = list(old if old else [])
+  while len(old) <= new[0]:
+    old.append(Voice(None, None))
+  old[new[0]] = new[1]
   return old
 
 
-def safeInt(value):
-  match = re.search(r'[0-9]+', value)
+def _parse_year(value):
+  match = re.search(r'[0-9]{4}', value)
   if match:
     return int(match.group(0))
   else:
-    return 0
+    return None
 
 
 def _process_lines(lines):
@@ -230,8 +234,8 @@ def _process_lines(lines):
               ('Title: ', 'title', str),
               ('Genre: ', 'genre', str),
               ('Key: ', 'key', str),
-              ('Composition Year: ', 'comp_year', safeInt),
-              ('Publication Year: ', 'pub_year', safeInt),
+              ('Composition Year: ', 'comp_year', _parse_year),
+              ('Publication Year: ', 'pub_year', _parse_year),
               ('Edition: ', 'edition', str),
               ('Editor: ', 'editor', _parse_people),
               ('Voice ', 'voices', _parse_voice, _merge_voice),
@@ -256,7 +260,6 @@ def _process_lines(lines):
                                    processed.get('voices', []),
                                    processed.get('composer', [])),
                        processed.get('editor', []),
-                       processed.get('edition'),
-                       processed.get('pub_year')),
+                       processed.get('edition')),
                processed['print'],
                processed.get('partit'))

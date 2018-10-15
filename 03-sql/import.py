@@ -41,11 +41,16 @@ def storeCompositions(connection, compositions, ids):
   cursor = connection.cursor()
   mp = defaultdict(lambda : [])
   for c in compositions:
-    mp[(c.name, c.genre, c.key, c.incipit, c.year)].append(c)
+    mp[c.pub_key()].append(c)
   for key in mp.keys():
-    cursor.execute('INSERT INTO score (name, genre, key, incipit, year) VALUES (?, ?, ?, ?, ?)', key)
+    c = mp[key][0]
+    cursor.execute('INSERT INTO score (name, genre, key, incipit, year) VALUES (?, ?, ?, ?, ?)', (c.name, c.genre, c.key, c.incipit, c.year))
     for c in mp[key]:
       ids[c] = cursor.lastrowid
+
+  for c in compositions:
+    for idx, v in enumerate(c.voices):
+      cursor.execute('INSERT INTO voice (score, number, range, name) VALUES (?, ?, ?, ?)', (ids[c], idx + 1, v.range, v.name))
 
 def loadEditions(prints):
   return [p.edition for p in prints]
@@ -56,10 +61,11 @@ def storeEditions(connection, editions, ids):
   mp = defaultdict(lambda : [])
   for e in editions:
     score_id = ids[e.composition]
-    mp[(e.name, score_id, 0)].append(e)
+    mp[e.pub_key()].append((e, score_id))
   for key in mp.keys():
-    cursor.execute('INSERT INTO edition (name, score, year) VALUES (?, ?, ?)', key)
-    for e in mp[key]:
+    e, score_id = mp[key][0]
+    cursor.execute('INSERT INTO edition (name, score) VALUES (?, ?)', (e.name, score_id))
+    for e, _ in mp[key]:
       ids[e] = cursor.lastrowid
 
 
@@ -68,7 +74,7 @@ def storePrints(connection, prints, ids):
   unique = set()
   for p in prints:
     edition_id = ids[p.edition]
-    unique.add((p.print_id, p.partiture, edition_id))
+    unique.add((p.print_id, 'Y' if p.partiture else 'N', edition_id))
   for key in unique:
     cursor.execute('INSERT INTO print (id, partiture, edition) VALUES (?, ?, ?)', key)
 
