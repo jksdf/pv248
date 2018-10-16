@@ -137,7 +137,7 @@ class Person:
     return hash(self.__key())
 
 
-def load(filename: str) -> [Person]:
+def load(filename):
   prints = []
   with open(filename, encoding='utf-8') as f:
     lines = []
@@ -200,11 +200,8 @@ def _parse_voice(raw):
   data = [i.strip() for i in raw.split(delimiter, 1) if i.strip()]
   if len(data) == 0:
     return (numero, Voice(None, None))
-  if '--' in data[0]:
+  if data[0].count('--'):
     range = data[0]
-    name = data[1] if len(data) > 1 else None
-  elif re.match(r'[0-9a-zA-Z]+-[0-9a-zA-Z]+', data[0]):
-    range = data[0].replace('-', '--')
     name = data[1] if len(data) > 1 else None
   else:
     range = None

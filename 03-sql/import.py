@@ -8,7 +8,7 @@ from collections import defaultdict
 
 INIT_SCRIPT = 'scorelib.sql'
 
-def loadPeople(prints: [scorelib.Print]):
+def loadPeople(prints):
   people = defaultdict(lambda : [])
   for p in prints:
     for person in p.edition.authors:
