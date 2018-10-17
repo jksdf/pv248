@@ -24,6 +24,16 @@ def __translate_keys(translation_schema):
     return res
   return f
 
+
+def __to_bool(val):
+  if val == 'Y':
+    return True
+  elif val == 'N':
+    return False
+  else:
+    return None
+
+
 def search(substr):
   connection = sqlite3.connect('scorelib.dat')
   result = defaultdict(lambda: [])
@@ -43,7 +53,7 @@ def search(substr):
           editors.append(Person(e_name, e_born, e_died))
         edition = Edition(composition, editors, edition_name)
         for print_id, print_part in connection.execute(r"SELECT id, partiture FROM print WHERE edition = ?", (edition_id, )):
-          print = Print(edition, print_id, print_part)
+          print = Print(edition, print_id, __to_bool(print_part))
           result[root_composer].append(print)
   json.dump(result,
             sys.stdout,
