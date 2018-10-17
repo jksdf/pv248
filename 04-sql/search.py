@@ -3,6 +3,7 @@ import json
 import sqlite3
 import sys
 from scorelib import *
+#from .scorelib import *
 from collections import defaultdict
 
 
@@ -11,6 +12,17 @@ def __map2list(mp):
   for idx in mp.keys():
     lst[idx-1] = mp[idx]
   return lst
+
+def __translate_keys(translation_schema):
+  def f(obj):
+    schema = translation_schema.get(type(obj))
+    if schema is None:
+      return obj.__dict__
+    res = {}
+    for key in obj.__dict__:
+      res[schema.get(key, key)] = obj.__dict__[key]
+    return res
+  return f
 
 def search(substr):
   connection = sqlite3.connect('scorelib.dat')
@@ -33,7 +45,15 @@ def search(substr):
         for print_id, print_part in connection.execute(r"SELECT id, partiture FROM print WHERE edition = ?", (edition_id, )):
           print = Print(edition, print_id, print_part)
           result[root_composer].append(print)
-  json.dump(result , sys.stdout, default=lambda x: x.__dict__, indent=4, ensure_ascii=False)
+  json.dump(result,
+            sys.stdout,
+            default=__translate_keys({Print: {"print_id": "Print Number", "partiture": "Partiture", "edition": "Edition"},
+                                      Edition: {"authors": "Editors", "name": "Name", "composition": "Composition"},
+                                      Composition: {"name": "Name", "incipit": "Incipit", "key": "Key", "genre": "Genre", "year": "Composition Year", "voices": "Voices", "authors": "Composer"},
+                                      Voice: {"name": "Name", "range": "Range"},
+                                      Person: {"name": "Name", "born": "Born", "died": "Died"}}),
+            indent=4,
+            ensure_ascii=False)
   return
 
 
