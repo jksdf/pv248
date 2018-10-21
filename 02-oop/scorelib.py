@@ -2,16 +2,15 @@
 
 import re
 
-
 def _str(val):
   return str(val) if val is not None else ''
 
 
 class Print:
-  def __init__(self, edition, print_id, partitude):
+  def __init__(self, edition, print_id, partiture):
     self.edition = edition
     self.print_id = print_id
-    self.partitude = partitude
+    self.partiture = partiture if partiture else False
 
   def composition(self):
     return self.edition.composition
@@ -43,20 +42,36 @@ Incipit: {}
            _str(self.edition.name),
            '; '.join(map(str, self.edition.authors)),
            voices,
-           'yes' if self.partitude else 'no',
+           'yes' if self.partiture else 'no',
            _str(self.composition().incipit))
+
+  def __key(self):
+    return (self.edition, self.print_id, self.partiture)
+
+  def __eq__(self, other):
+    return type(other) == type(self) and other.__key() == self.__key()
+
+  def __hash__(self):
+    return hash(self.__key())
 
 
 class Edition:
   def __init__(self, composition, authors, name):
     self.composition = composition
-    self.authors = authors
-    self.name = name
+    self.authors = authors if authors else []
+    self.name = name if name else ''
 
-  def format(self):
-    return "{}Composer: {}\nTitle: {}\n".format(self.composition.format(),
-                                                self.name,
-                                                self.name)
+  def pub_key(self):
+    return self.__key()
+
+  def __key(self):
+    return (self.composition, frozenset(self.authors), self.name)
+
+  def __eq__(self, other):
+    return type(other) == type(self) and other.__key() == self.__key()
+
+  def __hash__(self):
+    return hash(self.__key())
 
 
 class Composition:
@@ -69,8 +84,18 @@ class Composition:
     self.voices = voices
     self.authors = authors
 
-  def format(self):
-    return "Genre: {}"
+  def pub_key(self):
+    return self.__key()
+
+  def __key(self):
+    return (self.name, self.incipit, self.key, self.genre, self.year, frozenset(self.voices), frozenset(self.authors))
+
+  def __eq__(self, other):
+    return type(other) == type(self) and other.__key() == self.__key()
+
+  def __hash__(self):
+
+    return hash(self.__key())
 
 
 class Voice:
@@ -80,6 +105,15 @@ class Voice:
 
   def __str__(self):
     return ', '.join([i for i in [self.range, self.name] if i])
+
+  def __key(self):
+    return (self.name, self.range)
+
+  def __eq__(self, other):
+    return type(other) == type(self) and other.__key() == self.__key()
+
+  def __hash__(self):
+    return hash(self.__key())
 
 
 class Person:
@@ -92,6 +126,15 @@ class Person:
     if self.born is not None or self.died is not None:
       return '{} ({}--{})'.format(self.name, _str(self.born), _str(self.died))
     return self.name
+
+  def __key(self):
+    return (self.name)
+
+  def __eq__(self, other):
+    return type(other) == type(self) and other.__key() == self.__key()
+
+  def __hash__(self):
+    return hash(self.__key())
 
 
 def load(filename):
@@ -124,6 +167,8 @@ def _parse_bool(s):
 
 
 def _parse_people(raw):
+  if raw is None:
+    return []
   data = [i.strip() for i in raw.split(';') if i.strip()]
   res = []
   re_year = re.compile(r'\(([0-9]{4})?--?([0-9]{4})?\)')
@@ -149,35 +194,35 @@ def _parse_people(raw):
 
 
 def _parse_voice(raw):
-  raw = re.sub(r'^ *[0-9]*:', '', raw)
+  numero = int(re.search(r'^ *([0-9]*):', raw).group(1)) - 1
+  raw = re.sub(r'^ *([0-9]*):', '', raw)
   delimiter = ';' if ';' in raw else ','
   data = [i.strip() for i in raw.split(delimiter, 1) if i.strip()]
   if len(data) == 0:
-    return Voice(None, None)
-  if '--' in data[0]:
+    return (numero, Voice(None, None))
+  if data[0].count('--') == 1:
     range = data[0]
-    name = data[1] if len(data) > 1 else None
-  elif re.match(r'[0-9a-zA-Z]+-[0-9a-zA-Z]+', data[0]):
-    range = data[0].replace('-', '--')
     name = data[1] if len(data) > 1 else None
   else:
     range = None
     name = raw.strip()
-  return Voice(name, range)
+  return (numero, Voice(name, range))
 
 
 def _merge_voice(old, new):
-  old = list(old) if old else list([])
-  old.append(new)
+  old = list(old if old else [])
+  while len(old) <= new[0]:
+    old.append(Voice(None, None))
+  old[new[0]] = new[1]
   return old
 
 
-def safeInt(value):
-  match = re.search(r'[0-9]+', value)
+def _parse_year(value):
+  match = re.search(r'[0-9]{4}', value)
   if match:
     return int(match.group(0))
   else:
-    return 0
+    return None
 
 
 def _process_lines(lines):
@@ -186,12 +231,12 @@ def _process_lines(lines):
               ('Title: ', 'title', str),
               ('Genre: ', 'genre', str),
               ('Key: ', 'key', str),
-              ('Composition Year: ', 'comp_year', safeInt),
-              ('Publication Year: ', 'pub_year', safeInt),
+              ('Composition Year: ', 'comp_year', _parse_year),
+              ('Publication Year: ', 'pub_year', _parse_year),
               ('Edition: ', 'edition', str),
               ('Editor: ', 'editor', _parse_people),
               ('Voice ', 'voices', _parse_voice, _merge_voice),
-              ('Partiture: ', 'partit', _parse_bool),
+              ('Partiture:', 'partit', _parse_bool),
               ('Incipit: ', 'incipit', str),)
   lines = [i.strip() for i in lines if i.strip()]
   processed = {}
@@ -199,7 +244,7 @@ def _process_lines(lines):
     for c in commands:
       if line.startswith(c[0]):
         data = line[len(c[0]):].strip()
-        pdata = c[2](data) if data else None
+        pdata = c[2](data)
         mergeFn = c[3] if len(c) == 4 else (lambda _, x: x)
         processed[c[1]] = mergeFn(processed.get(c[1]), pdata)
   if processed == {}:

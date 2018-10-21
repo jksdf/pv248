@@ -200,7 +200,7 @@ def _parse_voice(raw):
   data = [i.strip() for i in raw.split(delimiter, 1) if i.strip()]
   if len(data) == 0:
     return (numero, Voice(None, None))
-  if data[0].count('--'):
+  if data[0].count('--') == 1:
     range = data[0]
     name = data[1] if len(data) > 1 else None
   else:
