@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import re
 import numpy as np
 
 def _linsolve(m, d):
+  if len(m) == 0:
+    return ('1', [])
   mrank = np.linalg.matrix_rank(m)
   augrank = np.linalg.matrix_rank([row + [dv] for row, dv in zip(m, d)])
   freevars = len(m[0])
   if mrank == augrank:
     if freevars == mrank:
+      if freevars < len(m):
+        for i in range(len(m)):
+          r = _linsolve(m[0:i] + m[i+1:], d[0:i] + d[i+1:])
+          if r[0] == '1':
+            return r
       return ('1', np.linalg.solve(m, d))
     else:
       return ('inf', freevars - mrank)
