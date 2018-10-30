@@ -8,6 +8,8 @@ from collections import defaultdict
 
 
 def __map2list(mp):
+  if len(mp.keys()) == 0:
+    return []
   lst = [None] * max(mp.keys())
   for idx in mp.keys():
     lst[idx-1] = mp[idx]
