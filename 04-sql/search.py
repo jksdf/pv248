@@ -56,7 +56,17 @@ def search(substr):
         edition = Edition(composition, editors, edition_name)
         for print_id, print_part in connection.execute(r"SELECT id, partiture FROM print WHERE edition = ?", (edition_id, )):
           print = Print(edition, print_id, __to_bool(print_part))
-          result[root_composer].append(print)
+          result[root_composer].append({"Print Number": print.print_id,
+                                        "Composer": composition.authors,
+                                        "Title": composition.name,
+                                        "Genre": composition.genre,
+                                        "Key": composition.key,
+                                        "Composition Year": composition.year,
+                                        "Edition": edition.name,
+                                        "Voices": __map2list(voicesMap),
+                                        "Editor": edition.authors,
+                                        "Partiture": print.partiture,
+                                        "Incipit": composition.incipit})
   json.dump(result,
             sys.stdout,
             default=__translate_keys({Print: {"print_id": "Print Number", "partiture": "Partiture", "edition": "Edition"},
