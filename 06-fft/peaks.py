@@ -32,7 +32,8 @@ def process(file, windowLen=None, factor=20):
         print('low = {}, high = {}'.format(minpeak[0] // windowLen, maxpeak[0] // windowLen))
 
 def main(args):
-    process(wave.open(args[0], 'r'), windowLen=1)
+    # We use 2 seconds to get precision of 1 Hz because of the Nyquist freq limit
+    process(wave.open(args[0], 'r'), windowLen=2)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
