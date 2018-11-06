@@ -34,6 +34,22 @@ def formatwin(win, windowLen, baseFreq):
     return '{:04.1f}-{:04.1f} {}'.format(begin, end, tones)
 
 
+def clearCluster(peaks):
+    runs = []
+    for f, a in peaks:
+        if (runs[-1][-1][0] if runs else None) == f - 10:
+            runs[-1].append((f, a))
+        else:
+            runs.append([(f, a)])
+    cleared = []
+    for run in runs:
+        if len(run) == 1:
+            cleared.append(run[0])
+        else:
+            #TODO(slivka): select from middle
+            cleared.append(max(run, key=lambda x: x[1]))
+    return cleared
+
 def process(baseF, file, windowLen, factor=20):
     windowSize = int(file.getframerate() * windowLen)
     windows = []
@@ -42,7 +58,7 @@ def process(baseF, file, windowLen, factor=20):
         sample = np.mean(np.reshape(struct.unpack("<{}h".format(windowSize * file.getnchannels()), x), (-1, file.getnchannels())), axis=1)
         vals = np.abs(np.fft.rfft(sample))
         a = np.average(vals)
-        peaks = sorted([f for f, _ in sorted([(int(idx / windowLen), x) for (idx,), x in np.ndenumerate(vals) if x >= factor * a and x != 0], key=lambda x: -x[1])[:3]])
+        peaks = sorted([f for f, _ in sorted(clearCluster([(int(idx / windowLen), x) for (idx,), x in np.ndenumerate(vals) if x >= factor * a and x != 0]), key=lambda x: -x[1])[:3]])
         windows.append(peaks)
     mergedWindows = []
     for idx, window in enumerate(windows):
