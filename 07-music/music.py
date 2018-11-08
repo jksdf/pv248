@@ -37,7 +37,7 @@ def formatwin(win, windowLen, baseFreq):
 def clearCluster(peaks):
     runs = []
     for f, a in peaks:
-        if (runs[-1][-1][0] if runs else None) == f - 10:
+        if (runs[-1][-1][0] if runs else None) == f - 1:
             runs[-1].append((f, a))
         else:
             runs.append([(f, a)])
@@ -46,19 +46,22 @@ def clearCluster(peaks):
         if len(run) == 1:
             cleared.append(run[0])
         else:
-            #TODO(slivka): select from middle
             cleared.append(max(run, key=lambda x: x[1]))
     return cleared
 
 def process(baseF, file, windowLen, factor=20):
     windowSize = int(file.getframerate() * windowLen)
+    rolling = []
+    for _ in range(9):
+        rolling += struct.unpack("<{}h".format(windowSize * file.getnchannels()), file.readframes(windowSize))
     windows = []
-    for window in range(file.getnframes() // windowSize):
-        x = file.readframes(windowSize)
-        sample = np.mean(np.reshape(struct.unpack("<{}h".format(windowSize * file.getnchannels()), x), (-1, file.getnchannels())), axis=1)
+    for window in range(file.getnframes() // windowSize - 9):
+        rolling += struct.unpack("<{}h".format(windowSize * file.getnchannels()), file.readframes(windowSize))
+        sample = np.mean(np.reshape(rolling, (-1, file.getnchannels())), axis=1)
+        del rolling[:windowSize]
         vals = np.abs(np.fft.rfft(sample))
         a = np.average(vals)
-        peaks = sorted([f for f, _ in sorted(clearCluster([(int(idx / windowLen), x) for (idx,), x in np.ndenumerate(vals) if x >= factor * a and x != 0]), key=lambda x: -x[1])[:3]])
+        peaks = sorted([f for f, _ in sorted(clearCluster([(int(idx / windowLen / 10), x) for (idx,), x in np.ndenumerate(vals) if x >= factor * a and x != 0]), key=lambda x: -x[1])[:3]])
         windows.append(peaks)
     mergedWindows = []
     for idx, window in enumerate(windows):
