@@ -29,7 +29,7 @@ def freq2note(f, baseFreq):
 
 def formatwin(win, windowLen, baseFreq):
     begin = win['range']['from'] * windowLen
-    end = win['range']['to'] * windowLen
+    end = (win['range']['to'] + 1) * windowLen
     tones = ' '.join([freq2note(w, baseFreq) for w in win['window']])
     return '{:04.1f}-{:04.1f} {}'.format(begin, end, tones)
 
