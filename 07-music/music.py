@@ -58,7 +58,7 @@ def process(baseF, file, windowLen, factor=20):
     for window in range(file.getnframes() // windowSize - 9):
         rolling += struct.unpack("<{}h".format(windowSize * file.getnchannels()), file.readframes(windowSize))
         sample = np.mean(np.reshape(rolling, (-1, file.getnchannels())), axis=1)
-        del rolling[:windowSize]
+        del rolling[:windowSize * file.getnchannels()]
         vals = np.abs(np.fft.rfft(sample))
         a = np.average(vals)
         peaks = sorted([f for f, _ in sorted(clearCluster([(int(idx / windowLen / 10), x) for (idx,), x in np.ndenumerate(vals) if x >= factor * a and x != 0]), key=lambda x: -x[1])[:3]])
