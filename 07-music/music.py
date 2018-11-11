@@ -65,15 +65,14 @@ def process(baseF, file, windowLen, factor=20):
         windows.append(peaks)
     mergedWindows = []
     for idx, window in enumerate(windows):
-        if window == []:
-            continue
         lst = mergedWindows[-1]['window'] if mergedWindows else None
         if lst == window:
             mergedWindows[-1]['range']['to'] = idx
         else:
             mergedWindows.append({'range': {'from': idx, 'to': idx}, 'window': window})
     for win in mergedWindows:
-        print(formatwin(win, windowLen, baseF))
+        if len(win['window']) != 0:
+            print(formatwin(win, windowLen, baseF))
         
 
 def main(args):
