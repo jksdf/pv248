@@ -21,7 +21,7 @@ def freq2note(f, baseFreq):
     cents = int(100*(n % 1))
     if cents >= 50:
         toneOffset += 1
-        cents = 100 - cents
+        cents = cents - 100
     if toneOffset >= 12:
         toneOffset = toneOffset - 12
         octavesOffset += 1
