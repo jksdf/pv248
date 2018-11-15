@@ -11,7 +11,7 @@ def formatNote(octave, tone):
     if octave >= 0:
         return t.lower() + ("'" * octave)
     else:
-        return t + (',' * (-1 * octave))
+        return t + (',' * (-1 * octave - 1))
 
 def freq2note(f, baseFreq):
     c = baseFreq * pow(2, -(12 + 9)/12)
