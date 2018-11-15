@@ -51,6 +51,8 @@ def analyze(data, dateFormat='%Y-%m-%d'):
 
 
 def _extrapolateDate(reg, points, startdate):
+    if reg == 0:
+        return None
     return datetime.date.fromordinal(math.ceil(points / reg + startdate))
 
 def student(file, id):
