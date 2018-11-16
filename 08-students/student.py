@@ -27,7 +27,7 @@ def analyze(data, dateFormat='%Y-%m-%d'):
         dates.append(datetime.datetime.strptime(key, dateFormat).date().toordinal())
         points.append(value)
     _prefixSum(points)
-    startdate = np.min(dates)
+    startdate = datetime.datetime.strptime('2018-9-17', '%Y-%m-%d').date().toordinal()
     dates = np.array(dates) - startdate
     reg = np.linalg.lstsq([[i] for i in dates], points, rcond=-1)[0][0]
     if False:
