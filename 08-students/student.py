@@ -5,6 +5,7 @@ import math
 import re
 import sys
 import datetime
+from pprint import pprint
 
 import numpy as np
 from collections import defaultdict
@@ -55,23 +56,35 @@ def _extrapolateDate(reg, points, startdate):
         return None
     return datetime.date.fromordinal(math.ceil(points / reg + startdate))
 
-def student(file, id):
+def read(file):
     reader = csv.reader(file)
     deadlines = list(map(parse_exercise, list(next(reader, None)[1:])))
-    rawdata = None
+    rawdata = {}
     for row in reader:
-        if int(row[0]) == id:
-            rawdata = [int(Decimal(v) * 100) for v in row[1:]]
-            break
-    if rawdata is None:
-        raise ValueError()
+        rawdata[row[0]] = [int(Decimal(v) * 100) for v in row[1:]]
+    averagestudent(len(deadlines), rawdata)
+    return deadlines, rawdata
+
+def student(file, sid):
+    deadlines, rawdata = read(file)
     data = defaultdict(lambda: 0)
-    for (date, _), points in zip(deadlines, rawdata):
+    for (date, _), points in zip(deadlines, rawdata[sid]):
         data[date] = max(data[date], points)
     return analyze(data)
 
+
+def averagestudent(deadlinecount, rawdata, avgname='average'):
+    avg = []
+    for deadlineidx in range(deadlinecount):
+        data = []
+        for row in rawdata.values():
+            data.append(row[deadlineidx])
+        avg.append(np.average(data))
+    rawdata[avgname] = avg
+
+
 def main(args):
-    json.dump(student(open(args[0]), int(args[1])), sys.stdout, indent=2)
+    json.dump(student(open(args[0]), args[1]), sys.stdout, indent=2)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
