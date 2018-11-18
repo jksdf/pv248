@@ -41,8 +41,8 @@ def parse_exercise(s):
 def analyze(values):
     return {'mean': np.mean(values) / 100,
             'median': np.median(values) / 100,
-            'first': np.quantile(values, 0.25) / 100,
-            'last': np.quantile(values, 0.75) / 100,
+            'first': np.percentile(values, 0.75) / 100,
+            'last': np.percentile(values, 0.25) / 100,
             'passed': np.count_nonzero(values)}
 
 
@@ -53,10 +53,14 @@ def stat(file, mode):
     for row in reader:
         for idx, value in enumerate(row[1:]):
             data[idx].append(int(Decimal(value)*100))
-    result = defaultdict(lambda: [])
+    result = defaultdict(lambda: defaultdict(lambda : 0))
     for name, points in zip(deadlines, data):
-        result[mode.getKey(*name)] += points
-    return {key: analyze(result[key]) for key in result.keys()}
+        for idx, point in enumerate(points):
+            result[mode.getKey(*name)][idx] += point
+    r2 = {}
+    for key in result.keys():
+        r2[key] = list(result[key].values())
+    return {key: analyze(sorted(list(pointsByStudent.values()))) for key, pointsByStudent in result.items()}
 
 def main(args):
     with open(args[0]) as f:
