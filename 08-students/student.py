@@ -78,6 +78,8 @@ def read(file):
 
 def student(file, sid):
     deadlines, rawdata = read(file)
+    if sid not in rawdata.keys():
+        return {}
     data = defaultdict(lambda: 0)
     for deadline, points in zip(deadlines, rawdata[sid]):
         data[deadline] = max(data[deadline], points)
