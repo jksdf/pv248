@@ -58,14 +58,14 @@ def analyze(data, dateFormat='%Y-%m-%d'):
             'passed': np.count_nonzero(values),
             'total': np.sum(values) / 100,
             'regression slope': reg,
-            'date 16': _extrapolateDate(reg, 16, startdate).strftime(dateFormat),
-            'date 20': _extrapolateDate(reg, 20, startdate).strftime(dateFormat)}
+            'date 16': _extrapolateDate(reg, 16, startdate, dateFormat),
+            'date 20': _extrapolateDate(reg, 20, startdate, dateFormat)}
 
 
-def _extrapolateDate(reg, points, startdate):
+def _extrapolateDate(reg, points, startdate, dateFormat):
     if reg == 0:
         return None
-    return datetime.date.fromordinal(math.ceil(points / reg + startdate))
+    return datetime.date.fromordinal(math.ceil(points / reg + startdate)).strftime(dateFormat)
 
 def read(file):
     reader = csv.reader(file)
