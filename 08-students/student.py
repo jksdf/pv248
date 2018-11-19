@@ -22,26 +22,37 @@ def _prefixSum(l):
     for i in range(1,len(l)):
         l[i] = l[i-1] + l[i]
 
-def analyze(data, dateFormat='%Y-%m-%d'):
+def regression(data, dateFormat, startDateStr='2018-9-17'):
     dates, points = [], []
     for key, value in sorted(data.items()):
         dates.append(datetime.datetime.strptime(key, dateFormat).date().toordinal())
         points.append(value)
     _prefixSum(points)
-    startdate = datetime.datetime.strptime('2018-9-17', '%Y-%m-%d').date().toordinal()
+    startdate = datetime.datetime.strptime(startDateStr, '%Y-%m-%d').date().toordinal()
     dates = np.array(dates) - startdate
     reg = np.linalg.lstsq([[i] for i in dates], points, rcond=-1)[0][0]
     if False:
         try:
             import matplotlib.pyplot as plt
-            y = dates
+            y = [0] + dates
             plt.plot(y, points)
             plt.plot(y, y * reg)
             plt.show()
         except:
             pass
     reg /= 100
-    values = list(data.values())
+    return startdate, reg
+
+def analyze(data, dateFormat='%Y-%m-%d'):
+    byDate = defaultdict(lambda : 0)
+    byEx = defaultdict(lambda : 0)
+    for (date, ex), points in data.items():
+        byDate[date] += points
+        byEx[ex] += points
+
+    startdate, reg = regression(byDate, dateFormat)
+
+    values = list(byEx.values())
     return {'mean': np.mean(values) / 100,
             'median': np.median(values) / 100,
             'passed': np.count_nonzero(values),
@@ -68,8 +79,8 @@ def read(file):
 def student(file, sid):
     deadlines, rawdata = read(file)
     data = defaultdict(lambda: 0)
-    for (date, _), points in zip(deadlines, rawdata[sid]):
-        data[date] = max(data[date], points)
+    for deadline, points in zip(deadlines, rawdata[sid]):
+        data[deadline] = max(data[deadline], points)
     return analyze(data)
 
 
