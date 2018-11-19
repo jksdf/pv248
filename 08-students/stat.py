@@ -41,8 +41,8 @@ def parse_exercise(s):
 def analyze(values):
     return {'mean': np.mean(values) / 100,
             'median': np.median(values) / 100,
-            'first': np.percentile(values, 0.75) / 100,
-            'last': np.percentile(values, 0.25) / 100,
+            'first': np.percentile(values, 25) / 100,
+            'last': np.percentile(values, 75) / 100,
             'passed': np.count_nonzero(values)}
 
 
