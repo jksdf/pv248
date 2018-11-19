@@ -57,9 +57,6 @@ def stat(file, mode):
     for name, points in zip(deadlines, data):
         for idx, point in enumerate(points):
             result[mode.getKey(*name)][idx] += point
-    r2 = {}
-    for key in result.keys():
-        r2[key] = list(result[key].values())
     return {key: analyze(sorted(list(pointsByStudent.values()))) for key, pointsByStudent in result.items()}
 
 def main(args):
