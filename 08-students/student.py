@@ -65,7 +65,7 @@ def analyze(data, dateFormat='%Y-%m-%d'):
 def _extrapolateDate(reg, points, startdate, dateFormat):
     if reg == 0:
         return 'inf'
-    return datetime.date.fromordinal(math.ceil(points / reg + startdate)).strftime(dateFormat)
+    return datetime.date.fromordinal(int(points / reg + startdate)).strftime(dateFormat)
 
 def read(file):
     reader = csv.reader(file)
