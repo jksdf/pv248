@@ -34,6 +34,7 @@ def _create_handler(url):
             try:
                 with urllib.request.urlopen(new_request, timeout=1) as response:
                     res_content = response.read().decode(_get_charset(response.getheaders()))
+                    pprint(response.__dict__)
                     return self._return(response.status, dict(response.getheaders()), res_content)
             except socket.timeout:
                 return self._return_error('timeout')
@@ -53,12 +54,13 @@ def _create_handler(url):
             except:
                 return self._return_error('invalid_json')
             new_request = urllib.request.Request(url=request['url'],
-                                                data=request.get('content'),
+                                                data=bytes(request.get('content'), 'UTF-8') if 'content' in request else None,
                                                 headers=request['headers'],
                                                 method=request.get('type', 'GET'))
             with urllib.request.urlopen(new_request, timeout=request['timeout']) as response:
                 content = response.read().decode(_get_charset(response.getheaders()))
-                return self._return(code=200, headers=dict(response.getheaders()), contents=content)
+                pprint(response.__dict__)
+                return self._return(code=response.status, headers=dict(response.getheaders()), contents=content)
 
         def _create_request_url(self):
             original_parts = urllib.parse.urlparse(url)
