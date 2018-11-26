@@ -34,8 +34,6 @@ def _create_handler(url):
             try:
                 with urllib.request.urlopen(new_request, timeout=1) as response:
                     res_content = response.read().decode(_get_charset(response.getheaders()))
-                    pprint(response.__dict__)
-                    pprint(res_content)
                     return self._return(response.status, dict(response.getheaders()), res_content)
             except socket.timeout:
                 return self._return_error('timeout')
