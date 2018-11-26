@@ -4,6 +4,7 @@ import http.server
 import socket
 import urllib.request
 import urllib.error
+import urllib.parse
 import json
 import sys
 import ssl
@@ -20,35 +21,39 @@ def _clear_dict(data):
                 res[key] = value
     return res
 
-
 def _create_handler(url):
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             new_headers = dict(self.headers)
             if 'Host' in new_headers:
                 del new_headers['Host']
-            new_request = urllib.request.Request(url=url,
+            new_request = urllib.request.Request(url=self._create_request_url(),
                                                  data=None,
                                                  headers=new_headers,
                                                  method='GET')
             try:
                 with urllib.request.urlopen(new_request, timeout=1) as response:
-                    self.send_response(200)
-                    for hkey, hvalue in response.getheaders():
-                        self.send_header(hkey, hvalue)
-                    self.end_headers()
                     res_content = response.read().decode(_get_charset(response.getheaders()))
-                    return self._return(200, dict(response.getheaders()), res_content)
+                    pprint(response.__dict__)
+                    pprint(res_content)
+                    return self._return(response.status, dict(response.getheaders()), res_content)
             except socket.timeout:
-                return self._return('timeout')
+                return self._return_error('timeout')
+            except urllib.error.HTTPError as e:
+                return self._return_error(e.getcode())
 
         def do_POST(self):
             try:
                 request = json.loads(self._read_request())
-                if request['type'] == 'POST' and ('url' not in request.keys() or 'content' not in request.keys()):
-                    raise ValueError
+                if 'type' not in request.keys():
+                    request['type'] = 'GET'
+                if 'url' not in request.keys() or \
+                        'headers' not in request.keys() or \
+                        'timeout' not in request.keys() or\
+                        (request['type'] == 'POST' and 'content' not in request.keys()):
+                    return self._return_error('invalid_json')
             except:
-                return self._return('invalid_json')
+                return self._return_error('invalid_json')
             new_request = urllib.request.Request(url=request['url'],
                                                 data=request.get('content'),
                                                 headers=request['headers'],
@@ -57,12 +62,20 @@ def _create_handler(url):
                 content = response.read().decode(_get_charset(response.getheaders()))
                 return self._return(code=200, headers=dict(response.getheaders()), contents=content)
 
+        def _create_request_url(self):
+            original_parts = urllib.parse.urlparse(url)
+            new_parts = urllib.parse.urlparse(self.path)
+            return urllib.parse.urlunparse(original_parts[:2] + new_parts[2:])
+
         def _read_request(self):
             if 'Content-Length' not in self.headers:
                 return ''
             return self.rfile.read(int(self.headers['Content-Length'])).decode(_get_charset(self.headers))
 
-        def _return(self, code, headers=None, contents=None):
+        def _return_error(self, code):
+            return self._return(code, None, None)
+
+        def _return(self, code, headers, contents):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
