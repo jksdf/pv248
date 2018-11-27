@@ -49,9 +49,9 @@ def _create_handler(url):
                         'headers' not in request.keys() or \
                         'timeout' not in request.keys() or\
                         (request['type'] == 'POST' and 'content' not in request.keys()):
-                    return self._return_error('invalid_json')
+                    return self._return_error('invalid json')
             except:
-                return self._return_error('invalid_json')
+                return self._return_error('invalid json')
             new_request = urllib.request.Request(url=request['url'],
                                                 data=bytes(request.get('content'), 'UTF-8') if 'content' in request else None,
                                                 headers=request['headers'],
