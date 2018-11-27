@@ -56,9 +56,14 @@ def _create_handler(url):
                                                 data=bytes(request.get('content'), 'UTF-8') if 'content' in request else None,
                                                 headers=request['headers'],
                                                 method=request.get('type', 'GET'))
-            with urllib.request.urlopen(new_request, timeout=request['timeout']) as response:
-                content = response.read().decode(_get_charset(response.getheaders()))
-                return self._return(code=response.status, headers=dict(response.getheaders()), contents=content)
+            try:
+                with urllib.request.urlopen(new_request, timeout=request['timeout']) as response:
+                    content = response.read().decode(_get_charset(response.getheaders()))
+                    return self._return(code=response.status, headers=dict(response.getheaders()), contents=content)
+            except urllib.error.HTTPError as e:
+                return self._return_error(e.getcode())
+            except:
+                return self._return_error('timeout')
 
         def _create_request_url(self):
             original_parts = urllib.parse.urlparse(url)
