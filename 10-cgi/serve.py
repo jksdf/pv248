@@ -28,7 +28,7 @@ def _create_handler(base_dir, read_len=1000):
             logging.info("Opening path: \"{}\"".format(full_path))
             if os.path.isfile(full_path):
                 if full_path.endswith('.cgi'):
-                    self.cgi_info = '', self.path
+                    self.cgi_info = '', self.path[1:]
                     self.run_cgi()
                 else:
                     self.print_file(full_path)
