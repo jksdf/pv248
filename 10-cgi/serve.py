@@ -23,7 +23,8 @@ def _create_handler(base_dir, read_len=1000):
             self.handle_call()
 
         def handle_call(self):
-            full_path = os.path.abspath(os.path.join(full_base_dir, urllib.parse.urlparse(self.path)[2][1:]))
+            param_path = urllib.parse.urlparse(self.path)[2][1:]
+            full_path = os.path.abspath(os.path.join(full_base_dir, param_path))
             logging.info("Opening path: \"{}\"".format(full_path))
             if os.path.isfile(full_path):
                 if full_path.endswith('.cgi'):
@@ -31,10 +32,8 @@ def _create_handler(base_dir, read_len=1000):
                     self.run_cgi()
                 else:
                     self.print_file(full_path)
-                    return
             else:
                 self.send_error(404, explain='The file does not exist')
-                self.end_headers()
 
         def print_file(self, full_path):
             file_size = os.path.getsize(full_path)
