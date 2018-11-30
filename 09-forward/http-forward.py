@@ -22,7 +22,12 @@ def _clear_dict(data):
     return res
 
 
-def _create_handler(url):
+def _create_handler(url, default_scheme='https'):
+    parsed_url = urllib.parse.urlparse(url)
+    if not parsed_url.scheme:
+        url = default_scheme + '://' + url
+        parsed_url = urllib.parse.urlparse(url)
+
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             new_request = urllib.request.Request(url=self._create_request_url(),
@@ -67,9 +72,8 @@ def _create_handler(url):
                 return self._return_error('timeout')
 
         def _create_request_url(self):
-            original_parts = urllib.parse.urlparse(url)
             new_parts = urllib.parse.urlparse(self.path)
-            return urllib.parse.urlunparse(original_parts[:2] + new_parts[2:])
+            return urllib.parse.urlunparse(parsed_url[:2] + new_parts[2:])
 
         def _read_request(self):
             if 'Content-Length' not in self.headers:
