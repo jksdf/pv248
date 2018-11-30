@@ -21,24 +21,15 @@ def _clear_dict(data):
                 res[key] = value
     return res
 
+
 def _create_handler(url):
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
-            new_headers = dict(self.headers)
-            if 'Host' in new_headers:
-                del new_headers['Host']
             new_request = urllib.request.Request(url=self._create_request_url(),
                                                  data=None,
-                                                 headers=new_headers,
+                                                 headers=self.create_get_headers(),
                                                  method='GET')
-            try:
-                with urllib.request.urlopen(new_request, timeout=1) as response:
-                    res_content = response.read().decode(_get_charset(response.getheaders()))
-                    return self._return(response.status, dict(response.getheaders()), res_content)
-            except urllib.error.HTTPError as e:
-                return self._return_error(e.getcode())
-            except:
-                return self._return_error('timeout')
+            self.open_follow(new_request, 1)
 
         def do_POST(self):
             try:
@@ -47,19 +38,29 @@ def _create_handler(url):
                     request['type'] = 'GET'
                 if 'url' not in request.keys() or \
                         'headers' not in request.keys() or \
-                        'timeout' not in request.keys() or\
+                        'timeout' not in request.keys() or \
                         (request['type'] == 'POST' and 'content' not in request.keys()):
                     return self._return_error('invalid json')
             except:
                 return self._return_error('invalid json')
             new_request = urllib.request.Request(url=request['url'],
-                                                data=bytes(request.get('content'), 'UTF-8') if 'content' in request else None,
-                                                headers=request['headers'],
-                                                method=request.get('type', 'GET'))
+                                                 data=bytes(request.get('content'),
+                                                            'UTF-8') if 'content' in request else None,
+                                                 headers=request['headers'],
+                                                 method=request.get('type', 'GET'))
+            self.open_follow(new_request, timeout=request['timeout'])
+
+        def create_get_headers(self):
+            new_headers = dict(self.headers)
+            if 'Host' in new_headers:
+                del new_headers['Host']
+            return new_headers
+
+        def open_follow(self, request, timeout):
             try:
-                with urllib.request.urlopen(new_request, timeout=request['timeout']) as response:
-                    content = response.read().decode(_get_charset(response.getheaders()))
-                    return self._return(code=response.status, headers=dict(response.getheaders()), contents=content)
+                with urllib.request.urlopen(request, timeout=timeout) as response:
+                    res_content = response.read().decode(_get_charset(response.getheaders()))
+                    return self._return(response.status, dict(response.getheaders()), res_content)
             except urllib.error.HTTPError as e:
                 return self._return_error(e.getcode())
             except:
@@ -93,6 +94,7 @@ def _create_handler(url):
                                                            'content': contentData}), indent=2),
                                    'UTF-8'))
             # TODO: respond with different encodings
+
     return Handler
 
 
