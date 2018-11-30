@@ -22,7 +22,7 @@ def _clear_dict(data):
     return res
 
 
-def _create_handler(url, default_scheme='https'):
+def _create_handler(url, default_scheme='http'):
     parsed_url = urllib.parse.urlparse(url)
     if not parsed_url.scheme:
         url = default_scheme + '://' + url
