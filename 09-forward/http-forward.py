@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 
 import http.server
-import socket
-import urllib.request
-import urllib.error
-import urllib.parse
 import json
+import re
+import socket
 import sys
-import ssl
+import urllib.error
 from pprint import pprint
+import logging
 
+import OpenSSL.SSL
+import urllib.parse
+import urllib.request
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def _clear_dict(data):
     res = {}
@@ -21,12 +26,16 @@ def _clear_dict(data):
                 res[key] = value
     return res
 
+def host_to_url(host, protocol='https'):
+    parsed_url = urllib.parse.urlparse(host)
+    if not parsed_url.scheme:
+        url = protocol + '://' + host
+        parsed_url = urllib.parse.urlparse(url)
+    return parsed_url
 
 def _create_handler(url, default_scheme='http'):
-    parsed_url = urllib.parse.urlparse(url)
-    if not parsed_url.scheme:
-        url = default_scheme + '://' + url
-        parsed_url = urllib.parse.urlparse(url)
+    logger.info('url: %s', url)
+    parsed_url = host_to_url(url, default_scheme)
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
@@ -42,18 +51,15 @@ def _create_handler(url, default_scheme='http'):
                 if 'type' not in request.keys():
                     request['type'] = 'GET'
                 if 'url' not in request.keys() or \
-                        'headers' not in request.keys() or \
-                        'timeout' not in request.keys() or \
                         (request['type'] == 'POST' and 'content' not in request.keys()):
                     return self._return_error('invalid json')
             except:
                 return self._return_error('invalid json')
             new_request = urllib.request.Request(url=request['url'],
-                                                 data=bytes(request.get('content'),
-                                                            'UTF-8') if 'content' in request else None,
-                                                 headers=request['headers'],
-                                                 method=request.get('type', 'GET'))
-            self.open_follow(new_request, timeout=request['timeout'])
+                                                 data=bytes(request.get('content'), 'UTF-8') if 'content' in request else None,
+                                                 headers=request.get('headers', {}),
+                                                 method=request['type'])
+            self.open_follow(new_request, timeout=request.get('timeout', 1))
 
         def create_get_headers(self):
             new_headers = dict(self.headers)
@@ -68,7 +74,16 @@ def _create_handler(url, default_scheme='http'):
                     return self._return(response.status, dict(response.getheaders()), res_content)
             except urllib.error.HTTPError as e:
                 return self._return_error(e.getcode())
+            except urllib.error.URLError as e:
+                logger.info('Timeout1 maybe.', exc_info=True)
+                if type(e.reason) == socket.timeout:
+                    return self._return_error('timeout')
+                else:
+                    # No idea what happened here
+                    return self._return_error('timeout')
             except:
+                # No idea what happened here
+                logger.info('Timeout2 maybe.', exc_info=True)
                 return self._return_error('timeout')
 
         def _create_request_url(self):
@@ -84,6 +99,10 @@ def _create_handler(url, default_scheme='http'):
             return self._return(code, None, None)
 
         def _return(self, code, headers, contents):
+            logger.info('_return code: %s headers: \'%s\' contents: \'%s\'.',
+                        str(code),
+                        str(headers),
+                        str(contents))
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
