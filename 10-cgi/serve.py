@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import http.server
 import os
+import pprint
 import socketserver
 import sys
 import urllib.error
@@ -8,27 +9,34 @@ import urllib.parse
 import urllib.request
 import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def _create_handler(base_dir, read_len=1000):
+
+def create_handler(base_dir, read_len=1000):
     full_base_dir = os.path.abspath(base_dir)
 
     class Handler(http.server.CGIHTTPRequestHandler):
         def do_HEAD(self):
-            self.handle_call()
+            logger.info(pprint.pformat(self.__dict__))
+            self.send_error(418)
 
         def do_POST(self):
+            logger.info(pprint.pformat(self.__dict__))
             self.handle_call()
 
         def do_GET(self):
+            logger.info(pprint.pformat(self.__dict__))
             self.handle_call()
 
         def handle_call(self):
             param_path = urllib.parse.urlparse(self.path)[2][1:]
             full_path = os.path.abspath(os.path.join(full_base_dir, param_path))
-            logging.info("Opening path: \"{}\"".format(full_path))
+            logging.info("Opening path: \"{}\" (rel: \"{}\")".format(full_path, os.path.relpath(full_path, os.getcwd())))
+            os.path.relpath(full_path, os.getcwd())
             if os.path.isfile(full_path):
                 if full_path.endswith('.cgi'):
-                    self.cgi_info = '', self.path[1:]
+                    self.cgi_info = '', os.path.relpath(full_path, os.getcwd())
                     self.run_cgi()
                 else:
                     self.print_file(full_path)
@@ -59,7 +67,7 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 
 def serve(port, path):
-    httpd = ThreadedHTTPServer(("", port), _create_handler(path))
+    httpd = ThreadedHTTPServer(("", port), create_handler(path))
     httpd.serve_forever()
 
 
