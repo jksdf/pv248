@@ -33,7 +33,6 @@ def create_handler(base_dir, read_len=1000):
             request_url = urllib.parse.urlparse(self.path)
             full_path = os.path.abspath(os.path.join(full_base_dir, request_url.path[1:]))
             logging.info("Opening path: \"{}\" (rel: \"{}\")".format(full_path, os.path.relpath(full_path, os.getcwd())))
-            os.path.relpath(full_path, os.getcwd())
             if os.path.isfile(full_path):
                 if full_path.endswith('.cgi'):
                     self.cgi_info = '', '{}?{}'.format(os.path.relpath(full_path, os.getcwd()), request_url.query)
