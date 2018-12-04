@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import http.server
 import os
+import posixpath
 import pprint
 import socketserver
 import sys
@@ -29,13 +30,45 @@ def create_handler(base_dir, read_len=1000):
             logger.info(pprint.pformat(self.__dict__))
             self.handle_call()
 
+        def translate_path(self, path):
+            """Translate a /-separated PATH to the local filename syntax.
+
+            Components that mean special things to the local file system
+            (e.g. drive or directory names) are ignored.  (XXX They should
+            probably be diagnosed.)
+
+            """
+            # abandon query parameters
+            path = path.split('?', 1)[0]
+            path = path.split('#', 1)[0]
+            # Don't forget explicit trailing slash when normalizing. Issue17324
+            trailing_slash = path.rstrip().endswith('/')
+            try:
+                path = urllib.parse.unquote(path, errors='surrogatepass')
+            except UnicodeDecodeError:
+                path = urllib.parse.unquote(path)
+            path = posixpath.normpath(path)
+            words = path.split('/')
+            words = filter(None, words)
+            path = os.getcwd()
+            for word in words:
+                if word != '..':
+                    if os.path.dirname(word) or word in (os.curdir, os.pardir):
+                        # Ignore components that are not a simple file/directory name
+                        continue
+                path = os.path.join(path, word)
+            if trailing_slash:
+                path += '/'
+            return path
+
         def handle_call(self):
             request_url = urllib.parse.urlparse(self.path)
             full_path = os.path.abspath(os.path.join(full_base_dir, request_url.path[1:]))
             logging.info("Opening path: \"{}\" (rel: \"{}\")".format(full_path, os.path.relpath(full_path, os.getcwd())))
             if os.path.isfile(full_path):
                 if full_path.endswith('.cgi'):
-                    self.cgi_info = '', '{}?{}'.format(os.path.relpath(full_path, os.getcwd()), request_url.query)
+                    pth = os.path.split(os.path.relpath(full_path, os.getcwd()))
+                    self.cgi_info = pth[0], '{}?{}'.format(pth[1], request_url.query)
                     self.run_cgi()
                 else:
                     self.print_file(full_path)
