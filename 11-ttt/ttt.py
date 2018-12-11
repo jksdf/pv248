@@ -21,7 +21,7 @@ def create_handler(game):
                 return self.return_json({'id': gid})
             elif path.path == '/status':
                 try:
-                    gid = int(query.get('id'))
+                    gid = int(query.get('game'))
                     status = game.status(gid)
                 except TypeError:
                     return self.return_error(404)
