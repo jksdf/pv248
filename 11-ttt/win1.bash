@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 PORT=8001
-GAME=1
+GAME=3
 
 TURN=1
 swap() {
@@ -30,7 +30,5 @@ play 2 2
 play 0 2
 play 2 0
 play 1 0
-play 0 1
 play 2 1
-play 1 2
 
