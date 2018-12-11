@@ -64,7 +64,7 @@ class Game:
 
     def __init__(self):
         self.games = {}
-        self.id_counter = 0
+        self.id_counter = -1
 
     def create_game(self, name):
         name = name if name else ''
