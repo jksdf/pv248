@@ -29,7 +29,7 @@ def create_handler(game):
             elif path.path == '/play':
                 try:
                     gid = int(query['game'])
-                except TypeError:
+                except:
                     return self.return_error(404)
                 try:
                     player, x, y = [int(query[i]) for i in ('player', 'x', 'y')]
@@ -37,7 +37,7 @@ def create_handler(game):
                     return self.return_json({'status': 'bad', 'message': 'Error parsing int parameter'})
                 try:
                     err = game.play(gid, player, x, y)
-                except TypeError:
+                except:
                     return self.return_error(404)
                 return self.return_json({'status': 'ok' if err is None else 'bad', 'message': err})
             elif path.path == '/list':
