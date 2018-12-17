@@ -14,7 +14,7 @@ def create_handler(game):
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             path = urllib.parse.urlparse(self.path)
-            query = dict([i.split('=') for i in path.query.split('&') if i])
+            query = dict([i.split('=') for i in urllib.parse.unquote_plus(path.query).split('&') if i])
             logger.info('requested path %s with query %s', str(path), str(query))
             if path.path == '/start':
                 gid = game.create_game(query.get('name', ''))

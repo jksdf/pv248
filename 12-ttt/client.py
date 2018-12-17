@@ -32,12 +32,12 @@ class Controller:
         self.player = None
 
     def request(self, path, params):
-        req_url = '{}/{}?{}'.format(self.url, path, '&'.join(['{}={}'.format(k, v) for k, v in params.items()]))
+        req_url = '{}/{}?{}'.format(self.url, path, urllib.parse.urlencode(params))
         try:
             with urllib.request.urlopen(req_url) as response_raw:
                 return json.loads(response_raw.read().decode(_get_charset(response_raw.getheaders())))
         except urllib.error.HTTPError:
-            logger.info('HTTPError.', exc_info=True)
+            logger.info('HTTPError for %s.', req_url, exc_info=True)
             raise urllib.error.HTTPError
         except urllib.error.URLError:
             logger.info('URLError.', exc_info=True)
@@ -54,10 +54,12 @@ class Controller:
             print('There is an issue with the connection to the server.')
             raise e
 
-    def start_game(self):
+    def start_game(self, name=None):
         """Start a game, return gid."""
+        if not name:
+            name = ''
         try:
-            self.gid = self.request('start', {})['id']
+            self.gid = self.request('start', {'name': name})['id']
             self.player = 1
             return self.gid
         except urllib.error.HTTPError as e:
@@ -81,7 +83,7 @@ class Controller:
     def my_turn(self):
         """Returns true if the next player is me or the game is finished."""
         try:
-            res = self.request('status', {'id': self.gid})
+            res = self.request('status', {'game': self.gid})
             return res.get('next') == self.player or 'winner' in res.keys()
         except urllib.error.HTTPError as e:
             print('There is an issue with the connection to the server.')
@@ -89,7 +91,7 @@ class Controller:
 
     def get_board(self):
         try:
-            res = self.request('status', {'id': self.gid})
+            res = self.request('status', {'game': self.gid})
             return res['board']
         except urllib.error.HTTPError as e:
             print('There is an issue with the connection to the server.')
@@ -97,7 +99,7 @@ class Controller:
 
     def is_done(self):
         try:
-            res = self.request('status', {'id': self.gid})
+            res = self.request('status', {'game': self.gid})
             return 'winner' in res.keys()
         except urllib.error.HTTPError as e:
             print('There is an issue with the connection to the server.')
@@ -105,7 +107,7 @@ class Controller:
 
     def get_winner(self):
         try:
-            res = self.request('status', {'id': self.gid})
+            res = self.request('status', {'game': self.gid})
             return res.get('winner')
         except urllib.error.HTTPError as e:
             print('There is an issue with the connection to the server.')
@@ -140,6 +142,7 @@ class Client:
             if err_msg is not None:
                 print('Error from the server:', err_msg)
                 return self.States.MY_TURN
+            self.print_board()
             return self.States.ENEMY_TURN if self.ctrl.get_winner() is None else self.States.END
         except (TypeError, ValueError):
             print('invalid input')
@@ -166,18 +169,20 @@ class Client:
     def s_init(self):
         # Prompt with game selection
         print('Available games:')
-        # TODO: only empty games
+        available = self.ctrl.list_games()
         for game in self.ctrl.list_games():
             print('{}: {}'.format(game['id'], game['name']))
         print('Pick one by id or enter \'new\' to start a new game:')
-        cmd = input().strip()
+        cmd, param = ([i for i in input().strip().split(' ', 1) if i] + [''])[:2]
         if cmd == 'new':
-            self.ctrl.start_game()
+            self.ctrl.start_game(param)
             print('Starting a new game.')
             return Client.States.MY_TURN
         else:
             try:
                 gid = int(cmd)
+                if gid not in (game['id'] for game in available):
+                    raise Exception
                 self.ctrl.join_game(gid)
                 return Client.States.ENEMY_TURN
             except:
