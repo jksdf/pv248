@@ -92,7 +92,7 @@ class Controller:
     def get_board(self):
         try:
             res = self.request('status', {'game': self.gid})
-            return res['board']
+            return res.get('board')
         except urllib.error.HTTPError as e:
             print('There is an issue with the connection to the server.')
             raise e
@@ -173,7 +173,8 @@ class Client:
         for game in self.ctrl.list_games():
             print('{}: {}'.format(game['id'], game['name']))
         print('Pick one by id or enter \'new\' to start a new game:')
-        cmd, param = ([i for i in input().strip().split(' ', 1) if i] + [''])[:2]
+        args = [i for i in input().strip().split(' ', 1) if i]
+        cmd, param = args[0], args[1] if len(args) > 1 else ''
         if cmd == 'new':
             self.ctrl.start_game(param)
             print('Starting a new game.')
@@ -199,6 +200,8 @@ class Client:
 
     def print_board(self):
         board = self.ctrl.get_board()
+        if not board:
+            return
         for line in board:
             print(''.join([self.play_num_to_char[i] for i in line]))
 

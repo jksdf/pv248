@@ -41,7 +41,7 @@ def create_handler(game):
                     return self.return_error(404)
                 return self.return_json({'status': 'ok' if err is None else 'bad', 'message': err})
             elif path.path == '/list':
-                self.return_json([{'name': g['name'], 'id': gid} for gid, g in game.games.items() if g['board'] == [[0]*3]*3])
+                self.return_json([{'name': g['name'], 'id': gid} for gid, g in game.games.items() if g.get('board') == [[0]*3]*3])
             else:
                 return self.return_error(418)
 
