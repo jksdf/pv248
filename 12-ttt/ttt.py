@@ -89,7 +89,7 @@ class Game:
 
         res = self.finished(g)
         if res is not None:
-            self.games[gid] = {'winner': res, 'name': g['name']}
+            self.games[gid] = {'winner': res, 'name': g['name'], 'board': g['board']}
         return None
 
     def status(self, gid):
