@@ -161,9 +161,9 @@ class Client:
         if winner == 0:
             print('draw')
         elif winner == self.ctrl.player:
-            print('you won')
+            print('you win')
         else:
-            print('you lost')
+            print('you lose')
         return self.States.EXIT
 
     def s_init(self):
